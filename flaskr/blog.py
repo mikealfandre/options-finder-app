@@ -6,23 +6,36 @@ from flaskr.auth import login_required
 from flaskr.db import get_db
 import requests
 import json
+from os import environ
+
+td_consumer_key = environ.get('TD_CONSUMER_KEY')
 
 bp = Blueprint('blog', __name__)
 
-td_consumer_key = "QHGA9UH5O4JMFJOJB2434HGSGC9HE67P"
-symbol = "AAL"
 endpoint = 'https://api.tdameritrade.com/v1/marketdata/{stock_ticker}/quotes?'
-full_url = endpoint.format(stock_ticker=symbol)
-page = requests.get(url=full_url,
-                    params={'apikey': td_consumer_key})
-content = json.loads(page.content)
 
-print(content[symbol]["description"])
+
+def get_stock_data(symbol):
+    full_url = endpoint.format(stock_ticker=symbol)
+    page = requests.get(url=full_url, params={'apikey': td_consumer_key})
+    return json.loads(page.content)
+
+
+@bp.route('/', methods=['GET'])
+def get():
+    if request.args.get('symbol'):
+        symbol = request.args.get('symbol')
+        stockData = get_stock_data(symbol)[symbol]
+        return render_template('blog/index.html', symbol_data=stockData)
+    else:
+        stockData = get_stock_data("AMC")["AMC"]
+        return render_template('blog/index.html', symbol_data=stockData)
 
 
 @bp.route('/')
 def index():
-    return render_template('blog/index.html', symbol_data=content[symbol])
+    pass
+    # return render_template('blog/index.html', symbol_data=content[symbol])
 
 
 @bp.route('/create', methods=('GET', 'POST'))
